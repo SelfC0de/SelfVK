@@ -1,0 +1,124 @@
+name: Build iOS
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build unsigned IPA
+    runs-on: macos-26
+    timeout-minutes: 45
+
+    env:
+      VK_CLIENT_ID_SECRET: ${{ secrets.VK_CLIENT_ID }}
+      VK_CLIENT_SECRET_SECRET: ${{ secrets.VK_CLIENT_SECRET }}
+      DERIVED_DATA: ${{ github.workspace }}/build/DerivedData
+      SOURCE_PACKAGES: ${{ github.workspace }}/build/SourcePackages
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          sw_vers
+          xcodebuild -version
+          swift --version
+
+      - name: Install XcodeGen
+        run: |
+          brew update >/dev/null
+          brew install xcodegen
+          xcodegen --version
+
+      - name: Generate build configuration
+        shell: bash
+        run: |
+          set +x
+          CLIENT_ID="${VK_CLIENT_ID_SECRET:-000000}"
+          CLIENT_SECRET="${VK_CLIENT_SECRET_SECRET:-not-configured}"
+          {
+            printf 'VK_CLIENT_ID = %s\n' "$CLIENT_ID"
+            printf 'VK_CLIENT_SECRET = %s\n' "$CLIENT_SECRET"
+            printf 'VK_API_VERSION = 5.199\n'
+            printf 'VK_AUTH_SCOPE = vkid.personal_info wall photos groups friends\n'
+          } > Config/Secrets.xcconfig
+
+      - name: Generate Xcode project
+        run: xcodegen generate --spec project.yml
+
+      - name: Resolve Swift packages
+        run: |
+          xcodebuild \
+            -project VKSelfCode.xcodeproj \
+            -scheme VKSelfCode \
+            -resolvePackageDependencies \
+            -clonedSourcePackagesDirPath "$SOURCE_PACKAGES"
+
+      - name: Build simulator validation
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project VKSelfCode.xcodeproj \
+            -scheme VKSelfCode \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$DERIVED_DATA-simulator" \
+            -clonedSourcePackagesDirPath "$SOURCE_PACKAGES" \
+            CODE_SIGNING_ALLOWED=NO \
+            build | tee build-simulator.log
+
+      - name: Build device application
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project VKSelfCode.xcodeproj \
+            -scheme VKSelfCode \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$DERIVED_DATA" \
+            -clonedSourcePackagesDirPath "$SOURCE_PACKAGES" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY='' \
+            build | tee build-device.log
+
+      - name: Package unsigned IPA
+        run: |
+          APP_PATH="$DERIVED_DATA/Build/Products/Release-iphoneos/VKSelfCode.app"
+          Scripts/package_ipa.sh "$APP_PATH" VKSelfCode-unsigned.ipa
+          shasum -a 256 VKSelfCode-unsigned.ipa > VKSelfCode-unsigned.ipa.sha256
+
+      - name: Upload unsigned IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: VKSelfCode-unsigned-${{ github.sha }}
+          path: |
+            VKSelfCode-unsigned.ipa
+            VKSelfCode-unsigned.ipa.sha256
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: VKSelfCode-build-logs-${{ github.sha }}
+          path: |
+            build-simulator.log
+            build-device.log
+          if-no-files-found: ignore
+          retention-days: 7

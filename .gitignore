@@ -1,0 +1,10 @@
+.DS_Store
+DerivedData/
+build/
+*.xcworkspace
+*.xcodeproj
+.swiftpm/
+Package.resolved
+Config/Local.xcconfig
+*.ipa
+*.xcarchive

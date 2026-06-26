@@ -36,6 +36,7 @@ targets:
           - Resources
     resources:
       - path: VKSelfCode/Resources/Assets.xcassets
+      - path: VKSelfCode/Resources/LaunchScreen.storyboard
     info:
       path: VKSelfCode/Resources/Info.plist
     configFiles:

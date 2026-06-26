@@ -6,75 +6,95 @@ struct AuthView: View {
     @State private var animateGlow = false
 
     var body: some View {
-        ZStack {
-            Brand.background.ignoresSafeArea()
-            decorativeBackground
+        GeometryReader { proxy in
+            ZStack {
+                Brand.background.ignoresSafeArea()
+                decorativeBackground
 
-            ScrollView {
-                VStack(spacing: 26) {
-                    Spacer(minLength: 70)
+                ScrollView {
+                    VStack(spacing: 26) {
+                        Spacer(minLength: 36)
 
-                    BrandIconView(size: 112)
-                        .shadow(color: Brand.accent.opacity(animateGlow ? 0.34 : 0.12), radius: animateGlow ? 35 : 14)
+                        BrandIconView(size: min(126, max(104, proxy.size.width * 0.27)))
+                            .shadow(
+                                color: Brand.accent.opacity(animateGlow ? 0.34 : 0.12),
+                                radius: animateGlow ? 35 : 14
+                            )
 
-                    VStack(spacing: 10) {
-                        BrandWordmark()
-                        Text("Лёгкий независимый клиент")
-                            .font(.headline)
-                            .foregroundStyle(Brand.foreground)
-                        Text("Лента, профиль, фото и видео в чистом тёмном интерфейсе.")
-                            .font(.subheadline)
-                            .foregroundStyle(Brand.subtle)
-                            .multilineTextAlignment(.center)
-                            .frame(maxWidth: 310)
-                    }
-
-                    featureRow
-
-                    VStack(spacing: 12) {
-                        Button(action: auth.authorize) {
-                            HStack {
-                                if auth.state == .authorizing {
-                                    ProgressView().tint(.black)
-                                } else {
-                                    Image(systemName: "person.crop.circle.badge.checkmark")
-                                }
-                                Text(auth.state == .authorizing ? "Открываем VK ID…" : "Войти через VK ID")
-                                    .fontWeight(.bold)
-                                Spacer()
-                                Image(systemName: "arrow.right")
-                            }
-                            .foregroundStyle(.black)
-                            .padding(.horizontal, 18)
-                            .frame(height: 56)
-                            .background(Brand.accent, in: RoundedRectangle(cornerRadius: 17, style: .continuous))
-                        }
-                        .disabled(!auth.isConfigured || auth.state == .authorizing)
-                        .opacity(auth.isConfigured ? 1 : 0.45)
-
-                        Button {
-                            model.enterDemoMode()
-                        } label: {
-                            Text("Открыть демонстрационный интерфейс")
-                                .font(.subheadline.weight(.semibold))
+                        VStack(spacing: 10) {
+                            BrandWordmark()
+                            Text("Лёгкий независимый клиент")
+                                .font(.headline)
                                 .foregroundStyle(Brand.foreground)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 52)
-                                .background(Brand.panel, in: RoundedRectangle(cornerRadius: 17, style: .continuous))
-                                .overlay {
-                                    RoundedRectangle(cornerRadius: 17, style: .continuous)
-                                        .stroke(Brand.border, lineWidth: 1)
-                                }
+                            Text("Лента, профиль, фото и видео в чистом тёмном интерфейсе.")
+                                .font(.subheadline)
+                                .foregroundStyle(Brand.subtle)
+                                .multilineTextAlignment(.center)
+                                .frame(maxWidth: 360)
                         }
-                    }
-                    .frame(maxWidth: 420)
 
-                    statusCard
-                    Spacer(minLength: 30)
+                        featureRow
+
+                        VStack(spacing: 12) {
+                            Button(action: auth.authorize) {
+                                HStack {
+                                    if auth.state == .authorizing {
+                                        ProgressView().tint(.black)
+                                    } else {
+                                        Image(systemName: "person.crop.circle.badge.checkmark")
+                                    }
+
+                                    Text(auth.state == .authorizing ? "Открываем VK ID…" : "Войти через VK ID")
+                                        .fontWeight(.bold)
+
+                                    Spacer()
+                                    Image(systemName: "arrow.right")
+                                }
+                                .foregroundStyle(.black)
+                                .padding(.horizontal, 18)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 56)
+                                .background(
+                                    Brand.accent,
+                                    in: RoundedRectangle(cornerRadius: 17, style: .continuous)
+                                )
+                            }
+                            .disabled(!auth.isConfigured || auth.state == .authorizing)
+                            .opacity(auth.isConfigured ? 1 : 0.45)
+
+                            Button {
+                                model.enterDemoMode()
+                            } label: {
+                                Text("Открыть демонстрационный интерфейс")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(Brand.foreground)
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 52)
+                                    .background(
+                                        Brand.panel,
+                                        in: RoundedRectangle(cornerRadius: 17, style: .continuous)
+                                    )
+                                    .overlay {
+                                        RoundedRectangle(cornerRadius: 17, style: .continuous)
+                                            .stroke(Brand.border, lineWidth: 1)
+                                    }
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+
+                        statusCard
+                        Spacer(minLength: 30)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(minHeight: proxy.size.height)
+                    .padding(.horizontal, 22)
                 }
-                .padding(.horizontal, 22)
+                .scrollIndicators(.hidden)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+            .frame(width: proxy.size.width, height: proxy.size.height)
         }
+        .ignoresSafeArea(.keyboard)
         .onAppear {
             withAnimation(.easeInOut(duration: 2.4).repeatForever(autoreverses: true)) {
                 animateGlow = true
@@ -106,6 +126,7 @@ struct AuthView: View {
             feature("rectangle.stack.fill", "Чистая лента")
             feature("lock.fill", "Keychain")
         }
+        .frame(maxWidth: .infinity)
     }
 
     private func feature(_ icon: String, _ title: String) -> some View {
@@ -127,18 +148,21 @@ struct AuthView: View {
                     Label("Нужны параметры VK ID", systemImage: "key.horizontal.fill")
                         .font(.headline)
                         .foregroundStyle(Brand.foreground)
+
                     Text("Добавьте GitHub Secrets VK_CLIENT_ID и VK_CLIENT_SECRET. До этого сборка работает в демонстрационном режиме.")
                         .font(.footnote)
                         .foregroundStyle(Brand.subtle)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .frame(maxWidth: 420)
+            .frame(maxWidth: .infinity)
+
         case .failed(let message):
             ErrorBanner(message: message) {
                 auth.configure()
             }
-            .frame(maxWidth: 420)
+            .frame(maxWidth: .infinity)
+
         default:
             EmptyView()
         }

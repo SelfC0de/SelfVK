@@ -23,6 +23,8 @@ struct MainTabView: View {
                 .tabItem { Label("Настройки", systemImage: "gearshape.fill") }
                 .tag(3)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Brand.background.ignoresSafeArea())
         .toolbarBackground(Brand.background.opacity(0.97), for: .tabBar)
         .toolbarBackground(.visible, for: .tabBar)
         .task(id: auth.session?.userId.value) {

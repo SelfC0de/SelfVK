@@ -1,0 +1,15 @@
+\
+1. Распакуйте содержимое архива в:
+   C:\Python\Projects\SelfVK-initial
+
+2. Подтвердите замену файлов.
+
+3. Выполните в PowerShell:
+
+   cd "C:\Python\Projects\SelfVK-initial"
+   git add .
+   git commit -m "Fix fullscreen layout and launch screen"
+   git push
+
+После push GitHub Actions автоматически пересоберёт IPA.
+Перед установкой новой сборки удалите старую версию приложения с iPhone.

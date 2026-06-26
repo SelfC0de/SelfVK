@@ -9,6 +9,7 @@ struct ProfileView: View {
             ScrollView {
                 VStack(spacing: 0) {
                     cover
+
                     identity
                         .padding(.horizontal, 16)
                         .offset(y: -42)
@@ -21,8 +22,10 @@ struct ProfileView: View {
                     }
                     .padding(.horizontal, 16)
                     .offset(y: -24)
+                    .padding(.bottom, 20)
                 }
             }
+            .scrollIndicators(.hidden)
             .background(Brand.background)
             .ignoresSafeArea(edges: .top)
             .toolbar(.hidden, for: .navigationBar)
@@ -32,7 +35,11 @@ struct ProfileView: View {
     private var cover: some View {
         ZStack {
             LinearGradient(
-                colors: [Brand.accent.opacity(0.55), Brand.background, Brand.panel],
+                colors: [
+                    Brand.accent.opacity(0.55),
+                    Brand.background,
+                    Brand.panel
+                ],
                 startPoint: .topTrailing,
                 endPoint: .bottomLeading
             )
@@ -46,16 +53,22 @@ struct ProfileView: View {
             VStack {
                 HStack {
                     BrandWordmark(compact: true)
+
                     Spacer()
-                    Button(action: {}) {
-                        Image(systemName: "ellipsis")
+
+                    NavigationLink {
+                        SettingsView()
+                    } label: {
+                        Image(systemName: "gearshape.fill")
                             .foregroundStyle(Brand.foreground)
                             .frame(width: 40, height: 40)
                             .background(.black.opacity(0.35), in: Circle())
                     }
+                    .buttonStyle(.plain)
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 58)
+
                 Spacer()
             }
         }
@@ -87,6 +100,7 @@ struct ProfileView: View {
                 Text(model.profile.fullName)
                     .font(.title2.weight(.bold))
                     .foregroundStyle(Brand.foreground)
+
                 if model.profile.verified == 1 {
                     Image(systemName: "checkmark.seal.fill")
                         .foregroundStyle(Brand.accent)
@@ -121,7 +135,10 @@ struct ProfileView: View {
             stat(model.profile.counters?.friends ?? 0, "Друзья")
         }
         .padding(.vertical, 14)
-        .background(Brand.panel, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .background(
+            Brand.panel,
+            in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+        )
         .overlay {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .stroke(Brand.border, lineWidth: 1)
@@ -133,6 +150,7 @@ struct ProfileView: View {
             Text(value.formatted(.number.notation(.compactName)))
                 .font(.headline.weight(.bold))
                 .foregroundStyle(Brand.foreground)
+
             Text(title)
                 .font(.caption2)
                 .foregroundStyle(Brand.subtle)
@@ -147,14 +165,20 @@ struct ProfileView: View {
                 .foregroundStyle(.black)
                 .frame(maxWidth: .infinity)
                 .frame(height: 46)
-                .background(Brand.accent, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .background(
+                    Brand.accent,
+                    in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+                )
 
             Button("Сообщение") {}
                 .font(.subheadline.weight(.bold))
                 .foregroundStyle(Brand.foreground)
                 .frame(maxWidth: .infinity)
                 .frame(height: 46)
-                .background(Brand.panel, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .background(
+                    Brand.panel,
+                    in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+                )
                 .overlay {
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
                         .stroke(Brand.border, lineWidth: 1)

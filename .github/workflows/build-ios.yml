@@ -55,51 +55,72 @@ jobs:
             printf 'VK_AUTH_SCOPE = vkid.personal_info wall photos groups friends\n'
           } > Config/Secrets.xcconfig
 
+          if [[ "$CLIENT_ID" == "000000" || "$CLIENT_SECRET" == "not-configured" ]]; then
+            echo "::warning::VK ID secrets are not configured. The IPA will use demo mode."
+          else
+            echo "VK ID configuration was supplied through GitHub Secrets."
+          fi
+
       - name: Generate Xcode project
         run: xcodegen generate --spec project.yml
 
       - name: Resolve Swift packages
         run: |
-          xcodebuild \
-            -project VKSelfCode.xcodeproj \
-            -scheme VKSelfCode \
-            -resolvePackageDependencies \
-            -clonedSourcePackagesDirPath "$SOURCE_PACKAGES"
+          xcodebuild             -project VKSelfCode.xcodeproj             -scheme VKSelfCode             -resolvePackageDependencies             -clonedSourcePackagesDirPath "$SOURCE_PACKAGES"
 
       - name: Build simulator validation
         run: |
           set -o pipefail
-          xcodebuild \
-            -project VKSelfCode.xcodeproj \
-            -scheme VKSelfCode \
-            -configuration Debug \
-            -sdk iphonesimulator \
-            -destination 'generic/platform=iOS Simulator' \
-            -derivedDataPath "$DERIVED_DATA-simulator" \
-            -clonedSourcePackagesDirPath "$SOURCE_PACKAGES" \
-            CODE_SIGNING_ALLOWED=NO \
-            build | tee build-simulator.log
+          xcodebuild             -project VKSelfCode.xcodeproj             -scheme VKSelfCode             -configuration Debug             -sdk iphonesimulator             -destination 'generic/platform=iOS Simulator'             -derivedDataPath "$DERIVED_DATA-simulator"             -clonedSourcePackagesDirPath "$SOURCE_PACKAGES"             CODE_SIGNING_ALLOWED=NO             build | tee build-simulator.log
 
       - name: Build device application
         run: |
           set -o pipefail
-          xcodebuild \
-            -project VKSelfCode.xcodeproj \
-            -scheme VKSelfCode \
-            -configuration Release \
-            -sdk iphoneos \
-            -destination 'generic/platform=iOS' \
-            -derivedDataPath "$DERIVED_DATA" \
-            -clonedSourcePackagesDirPath "$SOURCE_PACKAGES" \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY='' \
-            build | tee build-device.log
+          xcodebuild             -project VKSelfCode.xcodeproj             -scheme VKSelfCode             -configuration Release             -sdk iphoneos             -destination 'generic/platform=iOS'             -derivedDataPath "$DERIVED_DATA"             -clonedSourcePackagesDirPath "$SOURCE_PACKAGES"             CODE_SIGNING_ALLOWED=NO             CODE_SIGNING_REQUIRED=NO             CODE_SIGN_IDENTITY=''             build | tee build-device.log
+
+      - name: Validate icon mapping
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          APP_PATH="$DERIVED_DATA/Build/Products/Release-iphoneos/VKSelfCode.app"
+          INFO_PLIST="$APP_PATH/Info.plist"
+
+          test -d "$APP_PATH"
+          test -f "$INFO_PLIST"
+          test -f "$APP_PATH/Assets.car"
+          test -f "$APP_PATH/AppIcon60x60@2x.png"
+          test -f "$APP_PATH/AppIcon60x60@3x.png"
+
+          ICON_NAME="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIcons:CFBundlePrimaryIcon:CFBundleIconName' "$INFO_PLIST")"
+          ICON_FILE="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIcons:CFBundlePrimaryIcon:CFBundleIconFiles:0' "$INFO_PLIST")"
+
+          if [[ "$ICON_NAME" != "AppIcon" ]]; then
+            echo "::error::CFBundleIconName is missing or invalid: $ICON_NAME"
+            exit 1
+          fi
+
+          if [[ "$ICON_FILE" != "AppIcon60x60" ]]; then
+            echo "::error::CFBundleIconFiles is missing or invalid: $ICON_FILE"
+            exit 1
+          fi
+
+          WIDTH_2X="$(sips -g pixelWidth "$APP_PATH/AppIcon60x60@2x.png" | awk '/pixelWidth/ {print $2}')"
+          HEIGHT_2X="$(sips -g pixelHeight "$APP_PATH/AppIcon60x60@2x.png" | awk '/pixelHeight/ {print $2}')"
+          WIDTH_3X="$(sips -g pixelWidth "$APP_PATH/AppIcon60x60@3x.png" | awk '/pixelWidth/ {print $2}')"
+          HEIGHT_3X="$(sips -g pixelHeight "$APP_PATH/AppIcon60x60@3x.png" | awk '/pixelHeight/ {print $2}')"
+
+          [[ "$WIDTH_2X" == "120" && "$HEIGHT_2X" == "120" ]]
+          [[ "$WIDTH_3X" == "180" && "$HEIGHT_3X" == "180" ]]
+
+          echo "Icon metadata and fallback PNG files are valid."
+          /usr/bin/plutil -p "$INFO_PLIST"
 
       - name: Package unsigned IPA
+        shell: bash
         run: |
           APP_PATH="$DERIVED_DATA/Build/Products/Release-iphoneos/VKSelfCode.app"
-          Scripts/package_ipa.sh "$APP_PATH" VKSelfCode-unsigned.ipa
+          bash Scripts/package_ipa.sh "$APP_PATH" VKSelfCode-unsigned.ipa
           shasum -a 256 VKSelfCode-unsigned.ipa > VKSelfCode-unsigned.ipa.sha256
 
       - name: Upload unsigned IPA

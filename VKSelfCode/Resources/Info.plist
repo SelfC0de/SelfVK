@@ -20,6 +20,24 @@
     <string>$(MARKETING_VERSION)</string>
     <key>CFBundleVersion</key>
     <string>$(CURRENT_PROJECT_VERSION)</string>
+
+    <key>CFBundleIcons</key>
+    <dict>
+        <key>CFBundlePrimaryIcon</key>
+        <dict>
+            <key>CFBundleIconName</key>
+            <string>AppIcon</string>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AppIcon60x60</string>
+            </array>
+        </dict>
+    </dict>
+    <key>CFBundleIconFiles</key>
+    <array>
+        <string>AppIcon60x60</string>
+    </array>
+
     <key>LSRequiresIPhoneOS</key>
     <true/>
     <key>UILaunchStoryboardName</key>
@@ -32,6 +50,7 @@
     </array>
     <key>UIApplicationSupportsIndirectInputEvents</key>
     <true/>
+
     <key>CFBundleURLTypes</key>
     <array>
         <dict>
@@ -50,6 +69,7 @@
         <string>vk</string>
         <string>vkid</string>
     </array>
+
     <key>VKIDClientID</key>
     <string>$(VK_CLIENT_ID)</string>
     <key>VKIDClientSecret</key>
